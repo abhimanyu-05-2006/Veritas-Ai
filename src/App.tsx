@@ -23,8 +23,18 @@ import {
   X
 } from "lucide-react";
 
-// Initialize Gemini AI
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Initialize Gemini AI lazily to prevent startup crash if API key is missing
+let aiInstance: GoogleGenAI | null = null;
+const getAI = () => {
+  if (!aiInstance) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is missing. Please configure it in the Secrets panel.");
+    }
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+};
 
 type NewsStatus = "Real" | "Fake" | null;
 
@@ -53,6 +63,7 @@ export default function App() {
     setResult(null);
 
     try {
+      const ai = getAI();
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Analyze the following news content or headline for authenticity. 
